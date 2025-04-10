@@ -24,6 +24,10 @@ The idea behind **mmnn** is that most of the frameworks for Neural Networks are 
 Take, for example, the following neural network, which is possible to be defined, propagated and trained with **mmnn**.
 
 ```mermaid
+---
+config:
+  look: handDrawn
+---
 stateDiagram-v2
 direction LR
 classDef inputNeuron fill:#d7ece9,color:#000,font-weight:bold,stroke-width:2px,stroke:yellow
@@ -69,7 +73,8 @@ class o2 outputNeuron
 You can choose between two options:
 
 <table>
-<tr> <td> Build Manually </td>
+<tr> <td> <b>Install cargo</b> </td>
+<td> <b>Build Manually</b> </td>
 </tr>
 <tr>
 <td>
@@ -116,6 +121,10 @@ $ cargo run -- --help
 Take this network for example:
 
 ```mermaid
+---
+config:
+  look: handDrawn
+---
 stateDiagram-v2
 direction LR
 state "INPUT" as i1
@@ -177,6 +186,10 @@ The output is also somewhat different as it shows the neuron names and calculate
 
 Here is a simple [Flip Flop](https://en.wikipedia.org/wiki/Flip-flop_(electronics))-like neural network which makes use of recursive neuron connections.
 ```mermaid
+---
+config:
+  look: handDrawn
+---
 stateDiagram-v2
 direction LR
 classDef inputNeuron fill:#d7ece9,color:#000,font-weight:bold,stroke-width:2px,stroke:yellow
