@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://github.com/GrgoMariani/mmnnrust"
 repository = "https://github.com/GrgoMariani/mmnnrust"
 keywords = ["cli", 
-    "neural network",
+    "neuralnetwork",
     "backpropagation",
     "recursive",
     "neuron"

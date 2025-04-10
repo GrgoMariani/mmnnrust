@@ -1,5 +1,5 @@
 # mmnn - Micro Managed Neural Network
-bash-cli for Neural Network propagation/backpropagation
+rust based bash-cli for Neural Network propagation/backpropagation
 
 # Table of Contents
 
@@ -19,9 +19,9 @@ A **bash-cli** Micro Managed Neural Network. Write your neural network configura
 
 **mmnn** takes input values from the stdin and outputs them to stdout so you can design your scripts to pipe the neuron input/output values to/from it.
 
-The idea behind **mmnn** is that most of the frameworks for Neural Networks are connecting huge layers which makes it hard to analyze individual neurons connections. Additionally, direct neuron connections are only possible between consecutively connected layers. I wanted to change this and this is the result.
+The idea behind **mmnn** is that most of the frameworks for Neural Networks are connecting huge layers which makes it hard to analyze individual neuron connections. Additionally, direct neuron connections are only possible between consecutively connected layers. I wanted to change this and this is the result.
 
-Take, for example, the following neural network, which is possible to propagate and train with **mmnn**.
+Take, for example, the following neural network, which is possible to be defined, propagated and trained with **mmnn**.
 
 ```mermaid
 stateDiagram-v2
@@ -66,6 +66,8 @@ class o2 outputNeuron
 
 ### Installation
 
+You can choose between two options:
+
 <table>
 <tr> <td> Build Manually </td>
 </tr>
@@ -73,9 +75,17 @@ class o2 outputNeuron
 <td>
 
 ```bash
-$ git clone git:github.com/GrgoMariani/mmnn
+$ cargo install mmnn
+$ mmnn --help
+```
+
+</td>
+<td>
+
+```bash
+$ git clone git@github.com:GrgoMariani/mmnn
 $ cd mmnn
-$ cargo run --help
+$ cargo run -- --help
 ```
 
 </td>
@@ -84,10 +94,20 @@ $ cargo run --help
 
 ### Features
 
-* Network configuration in JSON
+* JSON network configuration
 * Forward propagation
 * Backward propagation
 * Recursive connections between neurons possible (more on that later)
+* Different activations
+  * ArcTan
+  * Binary
+  * ISRU
+  * LeakyReLU
+  * Linear
+  * ReLU
+  * SoftSign
+  * SoftStep
+  * TanH
 
 ### Basic Usage
 
@@ -138,6 +158,8 @@ $ mmnn propagate config.json
 
 The propagation is done through the standard input where each line represents input values to the neurons.
 
+Read the rest of this README for more configuration examples.
+
 #### Learn
 
 Learning is done similar to propagation
@@ -154,6 +176,30 @@ The output is also somewhat different as it shows the neuron names and calculate
 ### Advanced Usage
 
 Here is a simple [Flip Flop](https://en.wikipedia.org/wiki/Flip-flop_(electronics))-like neural network which makes use of recursive neuron connections.
+```mermaid
+stateDiagram-v2
+direction LR
+classDef inputNeuron fill:#d7ece9,color:#000,font-weight:bold,stroke-width:2px,stroke:yellow
+classDef outputNeuron fill:#cf388d,color:white,font-weight:bold,stroke-width:2px,stroke:yellow
+state "INPUT 1" as i1
+state "INPUT 2" as i2
+state "OUTPUT Q
+(ReLU)" as o1
+state "OUTPUT !Q
+(ReLU)" as o2
+state "bias" as b
+    i1 --> o1: -1
+    i2 --> o2: -1
+    o1 --> o2: -1
+    o2 --> o1: -1
+    b --> o1: 1
+    b --> o2: 1
+class i1 inputNeuron
+class i2 inputNeuron
+class o1 outputNeuron
+class o2 outputNeuron
+```
+
 ```bash
 $ mmnn propagate <(cat <<-EOL
     {
@@ -253,3 +299,5 @@ echo "Learning done!"
 # try the saved model
 mmnn propagate config_save.json
 ```
+
+Have fun playing around with this tool!
