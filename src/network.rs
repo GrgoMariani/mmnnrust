@@ -174,13 +174,13 @@ impl NeuralNetwork {
         }
     }
 
-    pub fn propagate(&mut self, input_values: &Vec<f64>) {
+    pub fn propagate(&mut self, input_values: &Vec<f64>) -> Result<(), String> {
         if input_values.len() != self.inputs.len() {
-            panic!(
+            return Err(format!(
                 "Input sizes do not match. {} vs {}",
                 input_values.len(),
                 self.inputs.len()
-            );
+            ));
         }
         for (input_value, neuron) in input_values.iter().zip(self.inputs.iter()) {
             let mut input_neuron = neuron.borrow_mut();
@@ -192,9 +192,17 @@ impl NeuralNetwork {
                 new_neuron.propagate();
             }
         }
+        Ok(())
     }
 
-    pub fn backpropagate(&mut self, expected_output_values: &Vec<f64>, learning_rate: f64) {
+    pub fn backpropagate(&mut self, expected_output_values: &Vec<f64>, learning_rate: f64) -> Result<(), String> {
+        if expected_output_values.len() != self.outputs.len() {
+            return Err(format!(
+                "Output sizes do not match. {} vs {}",
+                expected_output_values.len(),
+                self.outputs.len()
+            ));
+        }
         let output_results: Vec<f64> = self
             .outputs
             .iter()
@@ -217,6 +225,7 @@ impl NeuralNetwork {
             let mut neuron = item.borrow_mut();
             neuron.backpropagate(&mut error_map, learning_rate);
         }
+        Ok(())
     }
 
     pub fn print_as_json(self) -> String {

@@ -25,8 +25,14 @@ fn main() {
                     .split_whitespace()
                     .map(|x| x.to_string().trim().parse::<f64>().unwrap())
                     .collect();
-                nn.propagate(&values);
-                nn.print_outputs(false, true);
+                match nn.propagate(&values) {
+                    Ok(_) => {
+                        nn.print_outputs(false, true);
+                    },
+                    Err(msg) => {
+                        eprintln!("Propagation failed with message: '{}'", msg);
+                    }
+                }
             }
         }
         Commands::Learn {
@@ -63,9 +69,16 @@ fn main() {
                             .split_whitespace()
                             .map(|x| x.to_string().trim().parse::<f64>().unwrap())
                             .collect();
-                        nn.propagate(&values);
-                        nn.print_outputs(true, false);
-                        false
+                        match nn.propagate(&values) {
+                            Ok(_) => {
+                                nn.print_outputs(true, false);
+                                false
+                            },
+                            Err(msg) => {
+                                eprintln!("Propagation failed with message: '{}'", msg);
+                                true
+                            }
+                        }
                     }
                     false => {
                         let values: Vec<f64> = line
@@ -74,8 +87,15 @@ fn main() {
                             .split_whitespace()
                             .map(|x| x.to_string().trim().parse::<f64>().unwrap())
                             .collect();
-                        nn.backpropagate(&values, learning_rate);
-                        true
+                        match nn.backpropagate(&values, learning_rate) {
+                            Ok(_) => {
+                                true
+                            }
+                            Err(msg) => {
+                                eprintln!("Backpropagation failed with message: '{}'", msg);
+                                false
+                            }
+                        }
                     }
                 }
             }
