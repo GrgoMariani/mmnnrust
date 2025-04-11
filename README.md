@@ -1,5 +1,5 @@
 # mmnn - Micro Managed Neural Network
-rust based bash-cli for Neural Network propagation/backpropagation
+rust-based bash-cli for Neural Network propagation/backpropagation
 
 # Table of Contents
 
@@ -15,7 +15,7 @@ rust based bash-cli for Neural Network propagation/backpropagation
 
 ## Introduction
 
-A **bash-cli** Micro Managed Neural Network. Write your neural network configuration in JSON format and use this tool to run it.
+A **bash-cli** Micro Managed Neural Network. Write your neural network configuration in JSON format and use this tool to propagate it or improve it with backpropagation.
 
 **mmnn** takes input values from the stdin and outputs them to stdout so you can design your scripts to pipe the neuron input/output values to/from it.
 
@@ -88,8 +88,8 @@ $ mmnn --help
 <td>
 
 ```bash
-$ git clone git@github.com:GrgoMariani/mmnn
-$ cd mmnn
+$ git clone git@github.com:GrgoMariani/mmnnrust
+$ cd mmnnrust
 $ cargo run -- --help
 ```
 
@@ -99,11 +99,11 @@ $ cargo run -- --help
 
 ### Features
 
-* JSON network configuration
+* JSON configuration
 * Forward propagation
 * Backward propagation
 * Recursive connections between neurons possible (more on that later)
-* Different activations
+* Activations
   * ArcTan
   * Binary
   * ISRU
@@ -159,10 +159,10 @@ The equivalent configuration mmnn would use for this would be:
 If we save this configuration as **config.json** we could propagate it like so:
 ```bash
 $ mmnn propagate config.json
-> 1
-> 3.41
-> 2
-> 6.61
+stdin  > 1
+stdout > 3.41
+stdin  > 2
+stdout > 6.61
 ```
 
 The propagation is done through the standard input where each line represents input values to the neurons.
@@ -241,7 +241,7 @@ EOL
 )
 ```
 
-Playing around with the input values should showcase how memory is retained.
+Playing around with the input values should showcase how memory value of this circuit/network is retained.
 
 ## Examples
 
