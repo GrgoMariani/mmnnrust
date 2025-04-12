@@ -6,7 +6,6 @@ use std::rc::Rc;
 #[derive(Debug, PartialEq, Eq)]
 pub enum NeuronType {
     Input,
-    Output,
     Normal,
 }
 
@@ -74,11 +73,6 @@ impl Neuron {
             result.insert(neuron_id, *weight);
         }
         result
-    }
-
-    pub fn set_activation_bias(&mut self, activation: ActivationFunction, bias: f64) {
-        self.activation = activation;
-        self.bias = bias;
     }
 
     pub fn connect(&mut self, neuron: Rc<RefCell<Neuron>>, weight: f64) {

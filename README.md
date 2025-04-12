@@ -110,9 +110,13 @@ $ cargo run -- --help
   * LeakyReLU
   * Linear
   * ReLU
+  * ELU
+  * GELU
+  * Gaussian
   * SoftSign
-  * SoftStep
+  * SoftStep/Sigmoid
   * TanH
+  * Swish
 
 ### Basic Usage
 

@@ -6,10 +6,10 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-pub mod error_function;
+pub mod loss_function;
 
 use crate::neurons::{ActivationFunction, Neuron, NeuronType};
-use error_function::ErrorFunction;
+use loss_function::LossFunction;
 use serde::{Deserialize, Serialize};
 
 fn default_neuron_activation() -> String {
@@ -47,7 +47,7 @@ pub struct NeuralNetwork {
     outputs: Vec<Rc<RefCell<Neuron>>>,
     neuron_map: HashMap<String, Rc<RefCell<Neuron>>>,
     sorted_neurons: Vec<Rc<RefCell<Neuron>>>,
-    error_function: ErrorFunction,
+    loss_function: LossFunction,
 }
 
 impl NeuralNetwork {
@@ -60,10 +60,9 @@ impl NeuralNetwork {
             outputs: vec![],
             neuron_map: HashMap::new(),
             sorted_neurons: vec![],
-            error_function: ErrorFunction::new(),
+            loss_function: LossFunction::new(),
         };
         nn.create_inputs(&cfg.inputs);
-        nn.create_outputs(&cfg.outputs);
         for (neuron_name, neuron_defs) in &cfg.neurons {
             let activation = ActivationFunction::new(neuron_defs.activation.as_str());
             nn.create_neuron(neuron_name, activation, neuron_defs.bias);
@@ -73,6 +72,7 @@ impl NeuralNetwork {
                 nn.connect_neurons(lneuron_name.as_str(), rneuron_name.as_str(), weight);
             }
         }
+        nn.create_outputs(&cfg.outputs);
         nn.calculate_depths();
         nn.create_sorted_neuron_list();
         Ok(nn)
@@ -93,22 +93,19 @@ impl NeuralNetwork {
 
     fn create_outputs(&mut self, output_names: &Vec<String>) {
         for id in output_names {
-            let neuron = Rc::new(RefCell::new(Neuron::new(
-                id.as_str(),
-                NeuronType::Output,
-                ActivationFunction::Linear,
-                0_f64,
-            )));
-            self.neuron_map.insert(id.to_string(), Rc::clone(&neuron));
-            self.outputs.push(neuron);
+            let neuron = self
+                .neuron_map
+                .get(id)
+                .expect(format!("Could not find neuron id {}", id).as_str());
+            let neuron_copy = Rc::clone(&neuron);
+            self.outputs.push(neuron_copy);
         }
     }
 
     fn create_neuron(&mut self, id: &str, activation: ActivationFunction, bias: f64) {
         match self.neuron_map.get(&id.to_string()) {
-            Some(rcneuron) => {
-                let mut neuron = rcneuron.borrow_mut();
-                neuron.set_activation_bias(activation, bias);
+            Some(_) => {
+                panic!("Neuron id '{}' already taken", id.to_string());
             }
             None => {
                 let neuron = Neuron::new(id, NeuronType::Normal, activation, bias);
@@ -195,7 +192,11 @@ impl NeuralNetwork {
         Ok(())
     }
 
-    pub fn backpropagate(&mut self, expected_output_values: &Vec<f64>, learning_rate: f64) -> Result<(), String> {
+    pub fn backpropagate(
+        &mut self,
+        expected_output_values: &Vec<f64>,
+        learning_rate: f64,
+    ) -> Result<(), String> {
         if expected_output_values.len() != self.outputs.len() {
             return Err(format!(
                 "Output sizes do not match. {} vs {}",
@@ -209,7 +210,7 @@ impl NeuralNetwork {
             .map(|x| x.borrow().get_activation_value())
             .collect();
         let total_error: f64 = self
-            .error_function
+            .loss_function
             .get_error(&output_results, &expected_output_values);
         println!("[Error: {}]", total_error);
         let mut error_map: HashMap<String, f64> = HashMap::new();
@@ -217,7 +218,7 @@ impl NeuralNetwork {
         for (out_neuron, expected) in self.outputs.iter().zip(expected_output_values.iter()) {
             let neuron = out_neuron.borrow_mut();
             let error = self
-                .error_function
+                .loss_function
                 .get_derivative(neuron.get_activation_value(), *expected);
             error_map.insert(neuron.get_id().to_string(), error);
         }

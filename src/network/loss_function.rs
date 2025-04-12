@@ -1,11 +1,11 @@
 #[derive(Debug)]
-pub enum ErrorFunction {
+pub enum LossFunction {
     LossSquared,
 }
 
-impl ErrorFunction {
+impl LossFunction {
     pub fn new() -> Self {
-        ErrorFunction::LossSquared
+        LossFunction::LossSquared
     }
 
     pub fn get_error(&self, out: &Vec<f64>, expected: &Vec<f64>) -> f64 {
@@ -17,17 +17,17 @@ impl ErrorFunction {
             )
         }
         match self {
-            ErrorFunction::LossSquared => out
+            LossFunction::LossSquared => out
                 .iter()
                 .zip(expected.iter())
-                .map(|(x, y)| (x - y).powi(2) / 2.0)
+                .map(|(x, y)| (x - y).powi(2) )
                 .sum(),
         }
     }
 
     pub fn get_derivative(&self, out: f64, expected: f64) -> f64 {
         match self {
-            Self::LossSquared => out - expected,
+            Self::LossSquared => (out - expected)*2.0,
         }
     }
 }
