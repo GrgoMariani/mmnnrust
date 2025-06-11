@@ -1,4 +1,5 @@
 mod cli;
+mod error;
 mod network;
 mod neurons;
 
@@ -10,29 +11,30 @@ use std::sync::{Arc, Mutex};
 
 use clap::Parser;
 
-fn main() {
-    let args = Cli::parse();
-    let mut nn: NeuralNetwork;
+use crate::error::NeuralError;
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Cli::parse();
+    
     match args.command {
         Commands::Propagate { config_json_path } => {
-            nn = NeuralNetwork::new(config_json_path).unwrap();
+            let mut nn = NeuralNetwork::new(config_json_path)?;
             let stdin = io::stdin();
             for line in stdin.lock().lines() {
-                let values: Vec<f64> = line
-                    .unwrap()
+                let line = line?;
+                let values: Result<Vec<f64>, _> = line
                     .trim()
                     .split_whitespace()
-                    .map(|x| x.to_string().trim().parse::<f64>().unwrap())
+                    .map(|x| x.parse::<f64>())
                     .collect();
-                match nn.propagate(&values) {
-                    Ok(_) => {
-                        nn.print_outputs(false, true);
-                    },
-                    Err(msg) => {
-                        eprintln!("Propagation failed with message: '{}'", msg);
-                    }
+                
+                let values = values.map_err(|e| NeuralError::ParseError(e.to_string()))?;
+                
+                if let Err(e) = nn.propagate(&values) {
+                    eprintln!("Error: {}", e);
+                    continue;
                 }
+                nn.print_outputs(false, true);
             }
         }
         Commands::Learn {
@@ -40,7 +42,7 @@ fn main() {
             save_config_json_path,
             learning_rate,
         } => {
-            nn = NeuralNetwork::new(config_json_path).unwrap();
+            let mut nn = NeuralNetwork::new(config_json_path)?;
             let stdin = io::stdin();
             let mut propagate = true;
 
@@ -104,4 +106,5 @@ fn main() {
             fs::write(save_config_json_path, data.as_str()).expect("Unable to write file");
         }
     }
+    Ok(())
 }

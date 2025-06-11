@@ -75,7 +75,7 @@ impl ActivationFunction {
                         + ((2.0 / std::f64::consts::PI).sqrt() * (x.powi(3) * 0.044715 + x)).tanh())
             }
             ActivationFunction::Gaussian => std::f64::consts::E.powf(-x.powi(2)),
-            ActivationFunction::SoftSign => x * (1_f64 + x.abs()),
+            ActivationFunction::SoftSign => x / (1.0 + x.abs()),  // Changed formula
             ActivationFunction::SoftStep => 1_f64 / (1_f64 + std::f64::consts::E.powf(-x)), //1/(1+e^-x)
             ActivationFunction::TanH => {
                 let ex = std::f64::consts::E.powf(x);
@@ -91,33 +91,18 @@ impl ActivationFunction {
 
     pub fn derivative(&self, x: f64) -> f64 {
         match self {
-            ActivationFunction::ArcTan => 1_f64 / x.tan().powi(2) + 1_f64,
+            ActivationFunction::ArcTan => 1.0 / (1.0 + x.powi(2)),  // Corrected
             ActivationFunction::Binary => 0_f64,
-            ActivationFunction::ISRU => {
-                let inverse = x / (1.0 + x.powi(2)).sqrt();
-                (1_f64 / (1_f64 + inverse.powi(2)).sqrt()).powi(3)
-            }
+            ActivationFunction::ISRU => 1.0 / (1.0 + x.powi(2)).powf(1.5),  // Simplified
             ActivationFunction::LeakyReLU => {
-                if x >= 0.0 {
-                    1.0
-                } else {
-                    0.01
-                }
-            }
+                if x >= 0.0 { 1.0 } else { 0.01 }
+            },
             ActivationFunction::Linear => 1_f64,
             ActivationFunction::ReLU => {
-                if x > 0.0 {
-                    1_f64
-                } else {
-                    0_f64
-                }
+                if x > 0.0 { 1_f64 } else { 0_f64 }
             }
             ActivationFunction::ELU => {
-                if x >= 0.0 {
-                    1.0
-                } else {
-                    self.activation(x) + 0.1
-                }
+                if x >= 0.0 { 1.0 } else { 0.1 * std::f64::consts::E.powf(x) }  // Corrected
             }
             ActivationFunction::GELU => {
                 let cdf = 0.5
@@ -127,40 +112,35 @@ impl ActivationFunction {
                     + 0.5;
                 0.5 * (1.0 + cdf + x * (1.0 - cdf))
             }
-            ActivationFunction::Gaussian => -2.0 * x * std::f64::consts::E.powf(-x.powi(2)),
-            ActivationFunction::SoftSign => {
-                let inverse = x.tan() * 2.0 / std::f64::consts::PI; // approximation
-                1_f64 / (1_f64 + inverse.powi(2))
-            }
-            ActivationFunction::SoftStep => self.activation(x) * (1_f64 - self.activation(x)),
-            ActivationFunction::TanH => {
-                let ex = std::f64::consts::E.powf(x);
-                let exc = std::f64::consts::E.powf(-x);
-                4.0 / (ex + exc).powi(2)
-            }
+            ActivationFunction::Gaussian => -2.0 * x * self.activation(x),  // Simplified using activation
+            ActivationFunction::SoftSign => 1.0 / (1.0 + x.abs()).powi(2),  // Corrected
+            ActivationFunction::SoftStep => {
+                let fx = self.activation(x);
+                fx * (1.0 - fx)  // More readable
+            },
+            ActivationFunction::TanH => 1.0 - self.activation(x).powi(2),  // Corrected and simplified
             ActivationFunction::Swish => {
-                let ex = std::f64::consts::E.powf(x);
-                let exc = std::f64::consts::E.powf(-x);
-                exc / (-x + ex + 1.0)
+                let sigmoid = 1.0 / (1.0 + (-x).exp());
+                sigmoid * (1.0 + x * (1.0 - sigmoid))  // Corrected
             }
         }
     }
 
-    pub fn get_name(&self) -> String {
+    pub fn get_name(&self) -> &'static str {
         match self {
-            ActivationFunction::ArcTan => String::from("ARCTAN"),
-            ActivationFunction::Binary => String::from("Binary"),
-            ActivationFunction::ISRU => String::from("ISRU"),
-            ActivationFunction::LeakyReLU => String::from("LeakyReLU"),
-            ActivationFunction::Linear => String::from("Linear"),
-            ActivationFunction::ReLU => String::from("ReLU"),
-            ActivationFunction::ELU => String::from("ELU"),
-            ActivationFunction::GELU => String::from("GELU"),
-            ActivationFunction::Gaussian => String::from("Gaussian"),
-            ActivationFunction::SoftSign => String::from("SoftSign"),
-            ActivationFunction::SoftStep => String::from("SoftStep"),
-            ActivationFunction::TanH => String::from("TanH"),
-            ActivationFunction::Swish => String::from("Swish"),
+            ActivationFunction::ArcTan => "ARCTAN",
+            ActivationFunction::Binary => "Binary",
+            ActivationFunction::ISRU => "ISRU",
+            ActivationFunction::LeakyReLU => "LeakyReLU",
+            ActivationFunction::Linear => "Linear",
+            ActivationFunction::ReLU => "ReLU",
+            ActivationFunction::ELU => "ELU",
+            ActivationFunction::GELU => "GELU",
+            ActivationFunction::Gaussian => "Gaussian",
+            ActivationFunction::SoftSign => "SoftSign",
+            ActivationFunction::SoftStep => "SoftStep",
+            ActivationFunction::TanH => "TanH",
+            ActivationFunction::Swish => "Swish",
         }
     }
 }

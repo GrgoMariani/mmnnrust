@@ -1,25 +1,33 @@
 # mmnn - Micro Managed Neural Network
-rust-based bash-cli for Neural Network propagation/backpropagation
+
+[![Crates.io](https://img.shields.io/crates/v/mmnn)](https://crates.io/crates/mmnn)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org)
+
+A minimalist, flexible Neural Network CLI tool written in Rust that gives you precise control over neuron connections.
 
 # Table of Contents
 
-1. [Introduction](#introduction)
+1. [Introduction](#introduction) 
 2. [Getting Started](#getting-started)
+   - [Prerequisites](#prerequisites)
    - [Installation](#installation)
-   - [Features](#features)
+3. [Features](#features)
+4. [Usage](#usage)
    - [Basic Usage](#basic-usage)
-      - [Propagate](#propagation)
-      - [Learn](#learning)
    - [Advanced Usage](#advanced-usage)
-3. [Examples](#examples)
+5. [Examples](#examples)
+6. [Contributing](#contributing)
+7. [License](#license)
 
 ## Introduction
 
-A **bash-cli** Micro Managed Neural Network. Write your neural network configuration in JSON format and use this tool to propagate it or improve it with backpropagation.
+**mmnn** (Micro Managed Neural Network) is a command-line tool that lets you design and experiment with neural networks using a simple JSON configuration format. Key benefits include:
 
-**mmnn** takes input values from the stdin and outputs them to stdout so you can design your scripts to pipe the neuron input/output values to/from it.
-
-The idea behind **mmnn** is that most of the frameworks for Neural Networks are connecting huge layers which makes it hard to analyze individual neuron connections. Additionally, direct neuron connections are only possible between consecutively connected layers. I wanted to change this and this is the result.
+- Fine-grained control over individual neuron connections
+- Support for recursive neural networks
+- Easy integration with shell scripts via stdin/stdout
+- Minimal dependencies and lightweight design
 
 Take, for example, the following neural network, which is possible to be defined, propagated and trained with **mmnn**.
 
@@ -68,6 +76,15 @@ class o2 outputNeuron
 
 ## Getting Started
 
+### Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+- Rust 1.70 or later
+- Cargo package manager
+- Basic understanding of neural networks
+- (Optional) Basic shell scripting knowledge
+
 ### Installation
 
 You can choose between two options:
@@ -97,7 +114,7 @@ $ cargo run -- --help
 </tr>
 </table>
 
-### Features
+## Features
 
 * JSON configuration
 * Forward propagation
@@ -118,9 +135,9 @@ $ cargo run -- --help
   * TanH
   * Swish
 
-### Basic Usage
+## Usage
 
-#### Propagate
+### Basic Usage
 
 Take this network for example:
 
@@ -172,19 +189,6 @@ stdout > 6.61
 The propagation is done through the standard input where each line represents input values to the neurons.
 
 Read the rest of this README for more configuration examples.
-
-#### Learn
-
-Learning is done similar to propagation
-
-```bash
-$ mmnn learn config.json saved_config.json --learning-rate 0.5
-```
-
-Note that each odd input line is propagation step while the propagation step is each even one. Learned configuration is saved once all stdin lines are read or when SIGTERM is caught.
-
-The output is also somewhat different as it shows the neuron names and calculated error output.
-
 
 ### Advanced Usage
 
@@ -316,5 +320,24 @@ echo "Learning done!"
 # try the saved model
 mmnn propagate config_save.json
 ```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+
+Licensed under either of:
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any additional terms or conditions.
 
 Have fun playing around with this tool!

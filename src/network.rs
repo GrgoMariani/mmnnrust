@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 pub mod loss_function;
 
+use crate::error::NeuralError;
 use crate::neurons::{ActivationFunction, Neuron, NeuronType};
 use loss_function::LossFunction;
 use serde::{Deserialize, Serialize};
@@ -51,10 +51,12 @@ pub struct NeuralNetwork {
 }
 
 impl NeuralNetwork {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, NeuralError> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
-        let cfg: ConfigJson = serde_json::from_reader(reader)?;
+        let cfg: ConfigJson = serde_json::from_reader(reader)
+            .map_err(|e| NeuralError::ParseError(e.to_string()))?;
+        
         let mut nn = NeuralNetwork {
             inputs: vec![],
             outputs: vec![],
@@ -62,14 +64,15 @@ impl NeuralNetwork {
             sorted_neurons: vec![],
             loss_function: LossFunction::new(),
         };
+
         nn.create_inputs(&cfg.inputs);
         for (neuron_name, neuron_defs) in &cfg.neurons {
             let activation = ActivationFunction::new(neuron_defs.activation.as_str());
-            nn.create_neuron(neuron_name, activation, neuron_defs.bias);
+            nn.create_neuron(neuron_name, activation, neuron_defs.bias)?;
         }
         for (rneuron_name, neuron_defs) in &cfg.neurons {
             for (lneuron_name, &weight) in &neuron_defs.synapses {
-                nn.connect_neurons(lneuron_name.as_str(), rneuron_name.as_str(), weight);
+                nn.connect_neurons(lneuron_name.as_str(), rneuron_name.as_str(), weight)?;
             }
         }
         nn.create_outputs(&cfg.outputs);
@@ -78,15 +81,15 @@ impl NeuralNetwork {
         Ok(nn)
     }
 
-    fn create_inputs(&mut self, input_names: &Vec<String>) {
+    fn create_inputs(&mut self, input_names: &[String]) {
         for id in input_names {
             let neuron = Rc::new(RefCell::new(Neuron::new(
-                id.as_str(),
+                id,
                 NeuronType::Input,
                 ActivationFunction::Linear,
                 0_f64,
             )));
-            self.neuron_map.insert(id.to_string(), Rc::clone(&neuron));
+            self.neuron_map.insert(id.to_owned(), Rc::clone(&neuron));
             self.inputs.push(neuron);
         }
     }
@@ -102,46 +105,36 @@ impl NeuralNetwork {
         }
     }
 
-    fn create_neuron(&mut self, id: &str, activation: ActivationFunction, bias: f64) {
-        match self.neuron_map.get(&id.to_string()) {
-            Some(_) => {
-                panic!("Neuron id '{}' already taken", id.to_string());
-            }
-            None => {
-                let neuron = Neuron::new(id, NeuronType::Normal, activation, bias);
-                self.neuron_map
-                    .insert(String::from(id), Rc::new(RefCell::new(neuron)));
-            }
+    fn create_neuron(&mut self, id: &str, activation: ActivationFunction, bias: f64) -> Result<(), NeuralError> {
+        if self.neuron_map.contains_key(id) {
+            return Err(NeuralError::NetworkError(
+                format!("Neuron id '{}' already taken", id)
+            ));
         }
+        let neuron = Neuron::new(id, NeuronType::Normal, activation, bias);
+        self.neuron_map.insert(id.to_owned(), Rc::new(RefCell::new(neuron)));
+        Ok(())
     }
 
-    fn connect_neurons(&self, lneuron_id: &str, rneuron_id: &str, weight: f64) {
-        let lneuron = Rc::clone(
-            &self
-                .neuron_map
-                .get(lneuron_id)
-                .expect(format!("Could not find neuron with id '{}'", lneuron_id).as_str()),
-        );
-        let rneuron = Rc::clone(
-            &self
-                .neuron_map
-                .get(rneuron_id)
-                .expect(format!("Could not find neuron with id '{}'", rneuron_id).as_str()),
-        );
+    fn connect_neurons(&self, lneuron_id: &str, rneuron_id: &str, weight: f64) -> Result<(), NeuralError> {
+        let lneuron = self.neuron_map.get(lneuron_id)
+            .ok_or_else(|| NeuralError::NetworkError(
+                format!("Could not find neuron with id '{}'", lneuron_id)
+            ))?;
+        let rneuron = self.neuron_map.get(rneuron_id)
+            .ok_or_else(|| NeuralError::NetworkError(
+                format!("Could not find neuron with id '{}'", rneuron_id)
+            ))?;
+        
         let mut rneuron = rneuron.borrow_mut();
-        if rneuron.is_input() {
-            panic!(
-                "Cannot use input neuron '{}' as output to other neurons",
-                rneuron.get_id()
-            );
-        }
-        rneuron.connect(lneuron, weight);
+        rneuron.connect(Rc::clone(lneuron), weight)?;
+        Ok(())
     }
 
     fn calculate_depths(&mut self) {
         for (neuron_id, neuron) in self.neuron_map.iter() {
             let mut current_neuron = neuron.borrow_mut();
-            current_neuron.calculate_depth();
+            let _ = current_neuron.calculate_depth();
             if current_neuron.get_depth() == std::u32::MAX {
                 panic!("Neuron id '{}': Could not calculate depth", neuron_id);
             }

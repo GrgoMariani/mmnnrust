@@ -1,4 +1,5 @@
 use super::ActivationFunction;
+use crate::error::NeuralError;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -24,7 +25,7 @@ pub struct Neuron {
 impl Neuron {
     pub fn new(id: &str, ntype: NeuronType, activation: ActivationFunction, bias: f64) -> Self {
         Neuron {
-            id: String::from(id),
+            id: id.to_owned(),
             ntype,
             synapses: vec![],
             activation,
@@ -48,7 +49,7 @@ impl Neuron {
     }
 
     pub fn get_activation_name(&self) -> String {
-        self.activation.get_name()
+        self.activation.get_name().to_string()
     }
 
     pub fn get_bias(&self) -> f64 {
@@ -64,28 +65,35 @@ impl Neuron {
     }
 
     pub fn get_synapses_map(&self) -> HashMap<String, f64> {
-        let mut result: HashMap<String, f64> = HashMap::new();
-        for (lneuron, weight) in self.synapses.iter() {
+        let mut result = HashMap::with_capacity(self.synapses.len());
+        for (lneuron, weight) in &self.synapses {
             let neuron_id = match lneuron.try_borrow() {
-                Ok(neuron) => neuron.get_id().to_string(),
-                Err(_) => self.get_id().to_string(),
+                Ok(neuron) => neuron.get_id().to_owned(),
+                Err(_) => self.get_id().to_owned(),
             };
             result.insert(neuron_id, *weight);
         }
         result
     }
 
-    pub fn connect(&mut self, neuron: Rc<RefCell<Neuron>>, weight: f64) {
+    pub fn connect(&mut self, neuron: Rc<RefCell<Neuron>>, weight: f64) -> Result<(), NeuralError> {
+        if self.is_input() {
+            return Err(NeuralError::NeuronError(format!(
+                "Cannot use input neuron '{}' as output to other neurons",
+                self.get_id()
+            )));
+        }
         self.synapses.push((neuron, weight));
+        Ok(())
     }
 
-    pub fn calculate_depth(&mut self) {
+    pub fn calculate_depth(&mut self) -> Result<(), NeuralError> {
         if self.depth != std::u32::MAX {
-            return;
+            return Ok(());
         }
         if self.synapses.is_empty() {
             self.depth = 0;
-            return;
+            return Ok(());
         }
         let result = self
             .synapses
@@ -94,21 +102,25 @@ impl Neuron {
                 Ok(mut neuron) => match neuron.depth {
                     x if x != std::u32::MAX => Some(x + 1),
                     _ => {
-                        neuron.calculate_depth();
-                        match neuron.depth {
-                            std::u32::MAX => None,
-                            _ => Some(neuron.depth + 1),
-                        }
+                        neuron.calculate_depth().ok()?;
+                        Some(neuron.depth + 1)
                     }
                 },
                 Err(_) => None,
             })
             .filter_map(|x| x)
             .max();
+
         match result {
-            Some(depth) => self.depth = depth,
-            None => {}
-        };
+            Some(depth) => {
+                self.depth = depth;
+                Ok(())
+            }
+            None => Err(NeuralError::NeuronError(format!(
+                "Could not calculate depth for neuron '{}'",
+                self.get_id()
+            ))),
+        }
     }
 
     pub fn propagate(&mut self) {
@@ -126,12 +138,16 @@ impl Neuron {
     }
 
     pub fn backpropagate(&mut self, error_map: &mut HashMap<String, f64>, learning_rate: f64) {
-        let copy_self_id = self.get_id().to_string();
-        let accumulated_error = *error_map.entry(self.get_id().to_string()).or_insert(0.0);
+        let self_id = self.get_id().to_owned();
+        let accumulated_error = *error_map.entry(self_id.clone()).or_insert(0.0);
         let error = accumulated_error * self.activation.derivative(self.last_activation_value);
         let curr_depth = self.depth;
-        for (rcneuron, ref mut weight) in self.synapses.iter_mut() {
-            let self_id = copy_self_id.as_str().to_string();
+
+        // Create a vector to store weight updates
+        let mut weight_updates = Vec::with_capacity(self.synapses.len());
+
+        // First pass: Calculate all updates without modifying weights
+        for (i, (rcneuron, weight)) in self.synapses.iter().enumerate() {
             match rcneuron.try_borrow_mut() {
                 Ok(lneuron) => {
                     let activation_value = if lneuron.depth <= curr_depth {
@@ -139,26 +155,30 @@ impl Neuron {
                     } else {
                         lneuron.backup_activation_value
                     };
-                    let laccumulated = match error_map.get(&lneuron.get_id().to_string()) {
+                    let neuron_id = lneuron.get_id().to_owned();
+                    let laccumulated = match error_map.get(&neuron_id) {
                         Some(value) => value + accumulated_error * (*weight),
                         None => accumulated_error * (*weight),
                     };
-                    error_map.insert(lneuron.get_id().to_string(), laccumulated);
-                    *weight -= accumulated_error * learning_rate * activation_value;
+                    error_map.insert(neuron_id, laccumulated);
+                    weight_updates.push((i, accumulated_error * learning_rate * activation_value));
                 }
                 Err(_) => {
-                    // recursive case
                     let laccumulated = match error_map.get(&self_id) {
                         Some(value) => value + accumulated_error * (*weight),
                         None => accumulated_error * (*weight),
                     };
-                    error_map.insert(self_id, laccumulated);
-                    let new_weight =
-                        *weight - accumulated_error * learning_rate * self.backup_activation_value;
-                    *weight = new_weight;
+                    error_map.insert(self_id.clone(), laccumulated);
+                    weight_updates.push((i, accumulated_error * learning_rate * self.backup_activation_value));
                 }
             }
         }
+
+        // Second pass: Apply all weight updates
+        for (index, update) in weight_updates {
+            self.synapses[index].1 -= update;
+        }
+
         self.bias -= error * learning_rate;
     }
 }
