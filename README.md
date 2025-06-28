@@ -121,6 +121,7 @@ $ cargo run -- --help
 * Backward propagation
 * Recursive connections between neurons possible (more on that later)
 * Activations
+  * Identity
   * ArcTan
   * Binary
   * ISRU
@@ -134,6 +135,8 @@ $ cargo run -- --help
   * SoftStep/Sigmoid
   * TanH
   * Swish
+  * Sinusoid
+  * ELiSH
 
 ## Usage
 

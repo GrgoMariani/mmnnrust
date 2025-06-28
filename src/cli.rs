@@ -4,8 +4,9 @@ use std::path::PathBuf;
 #[derive(Debug, Parser)]
 #[command(name = "mmnn")]
 #[command(about = "mmnn - Micro Managed Neural Network
-Define your neural network configuration as a JSON object and use this tool to
-propagate the inputs or even to learn your network with expected values.
+A tool for neural network operations using JSON configurations.
+Input layer values are read from stdin as space-separated numbers.
+Networks are defined in JSON format with layers, neurons, and weights.
 ", long_about = None)]
 #[command(arg_required_else_help = true)]
 pub struct Cli {
@@ -17,27 +18,30 @@ pub struct Cli {
 pub enum Commands {
     #[command(
         arg_required_else_help = true,
-        about = "Take a neural network defined as JSON and propagate it"
+        about = "Forward propagate inputs through a neural network.
+Reads space-separated input values from stdin and outputs the result of propagation.
+Each line of input creates one line of output."
     )]
     Propagate {
-        #[arg(help = "Path to neural network JSON configuration")]
+        #[arg(help = "JSON file containing network structure, weights, and biases")]
         config_json_path: PathBuf,
     },
     #[command(
         arg_required_else_help = true,
-        about = "Take a neural network defined as JSON, learn it and save the output.
-        Writing the configuration is done only once the stdin is empty or when SIGTERM
-        has been caught"
+        about = "Train the neural network using supervised learning.
+Reads space-separated input values and expected outputs from stdin.
+Format: <input values...> | <expected outputs...>
+Training continues until EOF or SIGTERM signal."
     )]
     Learn {
-        #[arg(help = "Path to neural network JSON configuration")]
+        #[arg(help = "JSON file containing initial network structure and weights")]
         config_json_path: PathBuf,
-        #[arg(help = "Path to store learnt neural network JSON configuration")]
+        #[arg(help = "Output file to save the trained network configuration")]
         save_config_json_path: PathBuf,
         #[arg(
             long,
             default_value_t = 1.0,
-            help = "floating point factor for learning"
+            help = "Learning rate controlling step size during training (default: 1.0)"
         )]
         learning_rate: f64,
     },
